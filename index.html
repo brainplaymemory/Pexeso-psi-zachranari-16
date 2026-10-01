@@ -106,6 +106,13 @@ h1 {
     box-shadow: 0 3px 7px rgba(0,0,0,0.15);
 }
 
+.card img {
+    width: 105px;
+    height: 105px;
+    object-fit: cover;
+    border-radius: 14px;
+    display: block;
+}
 .card.open {
     background: white;
 }
@@ -382,7 +389,7 @@ const translations = {
 
 const rescueDogs = [
 
-    "🚒", "🚒",
+    "psik-hasic-1.png", "psik-hasic-1.png",
 
     "🚑", "🚑",
 
@@ -685,7 +692,12 @@ function startGame() {
 
                 card.classList.add("open");
 
-                card.textContent = dog;
+               
+               if (dog.endsWith(".png")) {
+                   card.innerHTML = `<img src="${dog}" alt="Psí záchranár">`;
+               } else {
+                   card.textContent = dog;
+               }
 
 
                 if (!firstCard) {
