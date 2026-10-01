@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BrainPlay – Pexeso Psí záchranári</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f5f3ef;
+    margin: 0;
+    padding: 20px 12px 30px;
+}
+
+h1 {
+    color: #555;
+    font-size: 32px;
+    margin: 10px 0 12px;
+}
+
+/* JAZYKY */
+
+#languages {
+    margin-bottom: 12px;
+}
+
+.languageButton {
+    border: 1px solid #6ec6e8;
+    background: white;
+    color: #555;
+    padding: 6px 10px;
+    margin: 0 3px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.languageButton.active {
+    background: #6ec6e8;
+    color: white;
+}
+
+/* NOVÁ HRA */
+
+#newGame {
+    font-size: 18px;
+    padding: 10px 22px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 10px;
+    background: #6ec6e8;
+    color: white;
+    cursor: pointer;
+}
+
+#newGame:hover {
+    background: #55b5d8;
+}
+
+/* ŠTATISTIKY */
+
+#stats {
+    margin-top: 18px;
+    font-size: 20px;
+    color: #555;
+}
+
+#best {
+    margin-top: 10px;
+    font-size: 19px;
+    color: #777;
+}
+
+/* PEXESO */
+
+#game {
+    display: grid;
+    grid-template-columns: repeat(4, 115px);
+    gap: 12px;
+    justify-content: center;
+    margin: 18px auto 0;
+}
+
+.card {
+    width: 115px;
+    height: 115px;
+    background: #6ec6e8;
+    border-radius: 18px;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 65px;
+    user-select: none;
+
+    box-shadow: 0 3px 7px rgba(0,0,0,0.15);
+}
+
+.card.open {
+    background: white;
+}
+
+.card.matched {
+    background: #e0e0e0;
+    cursor: default;
+}
+
+/* SPRÁVA PO DOKONČENÍ */
+
+#message {
+    margin-top: 25px;
+    font-size: 22px;
+    color: #555;
+    min-height: 28px;
+}
+
+/* BUDÚCI REKLAMNÝ PRIESTOR */
+
+#adSpace {
+    width: min(728px, 100%);
+    min-height: 90px;
+
+    margin: 18px auto 0;
+    padding: 15px;
+
+    border: 2px dashed #c8c8c8;
+    border-radius: 12px;
+
+    background: #fafafa;
+    color: #999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 14px;
+}
+
+/*
+    BUDÚCE REKLAMNÉ MIESTO
+
+    Sem môžeme neskôr vložiť reklamný kód
+    bez zásahu do samotného pexesa.
+*/
+
+/* MOBIL */
+
+@media (max-width: 650px) {
+
+    body {
+        padding: 12px 8px 25px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    #newGame {
+        font-size: 16px;
+        padding: 9px 18px;
+    }
+
+    #stats {
+        font-size: 17px;
+    }
+
+    #best {
+        font-size: 16px;
+    }
+
+    #game {
+        width: 100%;
+        max-width: 430px;
+
+        grid-template-columns: repeat(4, 1fr);
+
+        gap: 8px;
+
+        padding: 0 5px;
+    }
+
+    .card {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+
+        border-radius: 12px;
+
+        font-size: clamp(32px, 11vw, 55px);
+    }
+
+    #message {
+        font-size: 19px;
+    }
+
+    #adSpace {
+        min-height: 70px;
+        font-size: 13px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="languages">
+
+    <button class="languageButton active"
+            data-lang="sk">
+        SK
+    </button>
+
+    <button class="languageButton"
+            data-lang="en">
+        EN
+    </button>
+
+    <button class="languageButton"
+            data-lang="it">
+        IT
+    </button>
+
+</div>
+
+<h1 id="title">
+    🐾 Pexeso – Psí záchranári
+</h1>
+
+<button id="newGame">
+    Nová hra
+</button>
+
+<div id="stats"></div>
+
+<div id="best"></div>
+
+<div id="game"></div>
+
+<div id="message"></div>
+
+
+<!--
+================================================
+PRIPRAVENÉ MIESTO PRE BUDÚCU REKLAMU
+================================================
+-->
+
+<div id="adSpace">
+    <span id="adText">
+        Miesto pre budúcu reklamu
+    </span>
+</div>
+
+
+<!-- KONFETY -->
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+
+<script>
+
+/* ==========================================
+   JAZYKY
+========================================== */
+
+const translations = {
+
+    sk: {
+
+        title: "🐾 Pexeso – Psí záchranári",
+
+        newGame: "Nová hra",
+
+        attempts: "Pokusy",
+
+        time: "Čas",
+
+        bestNone:
+            "🏆 Najlepší výsledok: zatiaľ žiadny",
+
+        best:
+            "🏆 Najlepší výsledok",
+
+        attemptsWord:
+            "pokusov",
+
+        record:
+            "🎉 Nový rekord! Výborne!",
+
+        finished:
+            "🎉 Výborne! Našla si všetky dvojice!",
+
+        ad:
+            "Miesto pre budúcu reklamu"
+    },
+
+
+    en: {
+
+        title: "🐾 Memory – Rescue Dogs",
+
+        newGame: "New game",
+
+        attempts: "Attempts",
+
+        time: "Time",
+
+        bestNone:
+            "🏆 Best result: none yet",
+
+        best:
+            "🏆 Best result",
+
+        attemptsWord:
+            "attempts",
+
+        record:
+            "🎉 New record! Great job!",
+
+        finished:
+            "🎉 Great job! You found all the pairs!",
+
+        ad:
+            "Space for future advertising"
+    },
+
+
+    it: {
+
+        title: "🐾 Memory – Cani soccorritori",
+
+        newGame: "Nuova partita",
+
+        attempts: "Tentativi",
+
+        time: "Tempo",
+
+        bestNone:
+            "🏆 Miglior risultato: nessuno",
+
+        best:
+            "🏆 Miglior risultato",
+
+        attemptsWord:
+            "tentativi",
+
+        record:
+            "🎉 Nuovo record! Bravissima!",
+
+        finished:
+            "🎉 Bravissima! Hai trovato tutte le coppie!",
+
+        ad:
+            "Spazio per futura pubblicità"
+    }
+
+};
+
+
+/* ==========================================
+   DOČASNÉ OBRÁZKY
+
+   Neskôr sem vložíme našich
+   8 Psích záchranárov.
+========================================== */
+
+const rescueDogs = [
+
+    "🚒", "🚒",
+
+    "🚑", "🚑",
+
+    "🚓", "🚓",
+
+    "🚧", "🚧",
+
+    "🏔️", "🏔️",
+
+    "🛟", "🛟",
+
+    "🚁", "🚁",
+
+    "🌲", "🌲"
+
+];
+
+
+/* ==========================================
+   PREMENNÉ
+========================================== */
+
+const game =
+    document.getElementById("game");
+
+const message =
+    document.getElementById("message");
+
+const newGameButton =
+    document.getElementById("newGame");
+
+const stats =
+    document.getElementById("stats");
+
+const bestDisplay =
+    document.getElementById("best");
+
+const title =
+    document.getElementById("title");
+
+const adText =
+    document.getElementById("adText");
+
+
+let currentLanguage = "sk";
+
+let firstCard = null;
+let secondCard = null;
+
+let lockBoard = false;
+
+let matchedPairs = 0;
+
+let attempts = 0;
+
+let seconds = 0;
+
+let timer = null;
+
+let gameStarted = false;
+
+let bestAttempts = null;
+
+let bestTime = null;
+
+
+/* ==========================================
+   ČAS
+========================================== */
+
+function formattedTime(value) {
+
+    const minutes =
+        Math.floor(value / 60);
+
+    const remainingSeconds =
+        value % 60;
+
+    return (
+        minutes +
+        ":" +
+        String(remainingSeconds)
+            .padStart(2, "0")
+    );
+}
+
+
+/* ==========================================
+   ŠTATISTIKY
+========================================== */
+
+function updateStats() {
+
+    const t =
+        translations[currentLanguage];
+
+    stats.innerHTML =
+
+        t.attempts +
+        ": " +
+        attempts +
+
+        " &nbsp;&nbsp;&nbsp; " +
+
+        t.time +
+        ": " +
+        formattedTime(seconds);
+}
+
+
+/* ==========================================
+   NAJLEPŠÍ VÝSLEDOK
+========================================== */
+
+function updateBestDisplay() {
+
+    const t =
+        translations[currentLanguage];
+
+    if (bestAttempts === null) {
+
+        bestDisplay.textContent =
+            t.bestNone;
+
+        return;
+    }
+
+    bestDisplay.textContent =
+
+        t.best +
+        ": " +
+        bestAttempts +
+        " " +
+        t.attemptsWord +
+        " / " +
+        formattedTime(bestTime);
+}
+
+
+/* ==========================================
+   TIMER
+========================================== */
+
+function startTimer() {
+
+    if (gameStarted)
+        return;
+
+    gameStarted = true;
+
+    timer =
+        setInterval(() => {
+
+            seconds++;
+
+            updateStats();
+
+        }, 1000);
+}
+
+
+function stopTimer() {
+
+    clearInterval(timer);
+
+    timer = null;
+
+    gameStarted = false;
+}
+
+
+/* ==========================================
+   KONFETY
+========================================== */
+
+function startConfetti() {
+
+    if (typeof confetti !== "function")
+        return;
+
+    confetti({
+
+        particleCount: 120,
+
+        spread: 80,
+
+        origin: {
+            y: 0.6
+        }
+
+    });
+
+
+    setTimeout(() => {
+
+        confetti({
+
+            particleCount: 80,
+
+            spread: 100,
+
+            origin: {
+                x: 0.2,
+                y: 0.6
+            }
+
+        });
+
+
+        confetti({
+
+            particleCount: 80,
+
+            spread: 100,
+
+            origin: {
+                x: 0.8,
+                y: 0.6
+            }
+
+        });
+
+    }, 250);
+}
+
+
+/* ==========================================
+   NOVÁ HRA
+========================================== */
+
+function startGame() {
+
+    stopTimer();
+
+    game.innerHTML = "";
+
+    message.textContent = "";
+
+    firstCard = null;
+
+    secondCard = null;
+
+    lockBoard = false;
+
+    matchedPairs = 0;
+
+    attempts = 0;
+
+    seconds = 0;
+
+    gameStarted = false;
+
+    updateStats();
+
+    updateBestDisplay();
+
+
+    const shuffledDogs =
+        [...rescueDogs];
+
+
+    shuffledDogs.sort(
+        () => Math.random() - 0.5
+    );
+
+
+    shuffledDogs.forEach(dog => {
+
+        const card =
+            document.createElement("div");
+
+
+        card.classList.add("card");
+
+        card.textContent = "🐾";
+
+        card.dataset.dog = dog;
+
+
+        card.addEventListener(
+            "click",
+            () => {
+
+                if (lockBoard)
+                    return;
+
+                if (
+                    card.classList.contains("open")
+                )
+                    return;
+
+                if (
+                    card.classList.contains("matched")
+                )
+                    return;
+
+
+                startTimer();
+
+
+                card.classList.add("open");
+
+                card.textContent = dog;
+
+
+                if (!firstCard) {
+
+                    firstCard = card;
+
+                    return;
+                }
+
+
+                secondCard = card;
+
+                lockBoard = true;
+
+                attempts++;
+
+                updateStats();
+
+
+                if (
+                    firstCard.dataset.dog ===
+                    secondCard.dataset.dog
+                ) {
+
+                    firstCard.classList.add(
+                        "matched"
+                    );
+
+                    secondCard.classList.add(
+                        "matched"
+                    );
+
+
+                    matchedPairs++;
+
+
+                    firstCard = null;
+
+                    secondCard = null;
+
+                    lockBoard = false;
+
+
+                    if (
+                        matchedPairs ===
+                        rescueDogs.length / 2
+                    ) {
+
+                        stopTimer();
+
+                        startConfetti();
+
+
+                        const t =
+                            translations[
+                                currentLanguage
+                            ];
+
+
+                        if (
+                            bestAttempts === null ||
+
+                            attempts <
+                            bestAttempts ||
+
+                            (
+                                attempts ===
+                                bestAttempts &&
+
+                                seconds <
+                                bestTime
+                            )
+                        ) {
+
+                            bestAttempts =
+                                attempts;
+
+                            bestTime =
+                                seconds;
+
+                            updateBestDisplay();
+
+                            message.textContent =
+                                t.record;
+
+                        }
+
+                        else {
+
+                            message.textContent =
+                                t.finished;
+
+                        }
+                    }
+
+                }
+
+                else {
+
+                    setTimeout(() => {
+
+                        firstCard
+                            .classList
+                            .remove("open");
+
+                        secondCard
+                            .classList
+                            .remove("open");
+
+
+                        firstCard.textContent =
+                            "🐾";
+
+                        secondCard.textContent =
+                            "🐾";
+
+
+                        firstCard = null;
+
+                        secondCard = null;
+
+                        lockBoard = false;
+
+                    }, 2500);
+                }
+            }
+        );
+
+
+        game.appendChild(card);
+    });
+}
+
+
+/* ==========================================
+   ZMENA JAZYKA
+========================================== */
+
+function changeLanguage(lang) {
+
+    currentLanguage = lang;
+
+    document.documentElement.lang = lang;
+
+    const t =
+        translations[lang];
+
+
+    title.textContent =
+        t.title;
+
+    newGameButton.textContent =
+        t.newGame;
+
+    adText.textContent =
+        t.ad;
+
+
+    document
+        .querySelectorAll(
+            ".languageButton"
+        )
+        .forEach(button => {
+
+            button.classList.toggle(
+
+                "active",
+
+                button.dataset.lang ===
+                lang
+            );
+
+        });
+
+
+    updateStats();
+
+    updateBestDisplay();
+
+
+    /*
+    Ak je hra už dokončená,
+    výslednú správu pri zmene
+    jazyka jednoducho skryjeme.
+    */
+
+    if (message.textContent !== "") {
+
+        message.textContent = "";
+    }
+}
+
+
+/* ==========================================
+   TLAČIDLÁ
+========================================== */
+
+newGameButton.addEventListener(
+    "click",
+    startGame
+);
+
+
+document
+    .querySelectorAll(
+        ".languageButton"
+    )
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                changeLanguage(
+                    button.dataset.lang
+                );
+
+            }
+        );
+
+    });
+
+
+/* ==========================================
+   ŠTART
+========================================== */
+
+changeLanguage("sk");
+
+startGame();
+
+</script>
+
+</body>
+</html>
